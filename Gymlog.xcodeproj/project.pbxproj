@@ -1,0 +1,424 @@
+// !$*UTF8*$!
+{
+	objectVersion = 56;
+	classes = {
+	};
+	archiveVersion = 1;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A00000000000000000000011 /* GymlogApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* GymlogApp.swift */; };
+		A00000000000000000000012 /* TrainingEditorScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* TrainingEditorScreen.swift */; };
+		A00000000000000000000013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* Assets.xcassets */; };
+		A00000000000000000000014 /* GymlogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* GymlogTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A00000000000000000000021 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000030 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A00000000000000000000040;
+			remoteInfo = Gymlog;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000001 /* GymlogApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymlogApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000002 /* TrainingEditorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingEditorScreen.swift; sourceTree = "<group>"; };
+		A00000000000000000000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A00000000000000000000004 /* GymlogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymlogTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000005 /* Gymlog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gymlog.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000006 /* GymlogTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GymlogTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A00000000000000000000050 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000051 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A00000000000000000000060 = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000061 /* Gymlog */,
+				A00000000000000000000062 /* GymlogTests */,
+				A00000000000000000000063 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A00000000000000000000061 /* Gymlog */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000064 /* App */,
+				A00000000000000000000065 /* Features */,
+				A00000000000000000000003 /* Assets.xcassets */,
+			);
+			path = Gymlog;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000062 /* GymlogTests */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000004 /* GymlogTests.swift */,
+			);
+			path = GymlogTests;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000063 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000005 /* Gymlog.app */,
+				A00000000000000000000006 /* GymlogTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000064 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000001 /* GymlogApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000065 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000066 /* TrainingEditor */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000066 /* TrainingEditor */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000002 /* TrainingEditorScreen.swift */,
+			);
+			path = TrainingEditor;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A00000000000000000000040 /* Gymlog */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000070 /* Build configuration list for PBXNativeTarget "Gymlog" */;
+			buildPhases = (
+				A00000000000000000000052 /* Sources */,
+				A00000000000000000000050 /* Frameworks */,
+				A00000000000000000000053 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Gymlog;
+			productName = Gymlog;
+			productReference = A00000000000000000000005 /* Gymlog.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A00000000000000000000041 /* GymlogTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000071 /* Build configuration list for PBXNativeTarget "GymlogTests" */;
+			buildPhases = (
+				A00000000000000000000054 /* Sources */,
+				A00000000000000000000051 /* Frameworks */,
+				A00000000000000000000055 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A00000000000000000000022 /* PBXTargetDependency */,
+			);
+			name = GymlogTests;
+			productName = GymlogTests;
+			productReference = A00000000000000000000006 /* GymlogTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000030 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					A00000000000000000000040 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					A00000000000000000000041 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A00000000000000000000040;
+					};
+				};
+			};
+			buildConfigurationList = A00000000000000000000072 /* Build configuration list for PBXProject "Gymlog" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A00000000000000000000060;
+			productRefGroup = A00000000000000000000063 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A00000000000000000000040 /* Gymlog */,
+				A00000000000000000000041 /* GymlogTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A00000000000000000000053 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000013 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000055 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A00000000000000000000052 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000011 /* GymlogApp.swift in Sources */,
+				A00000000000000000000012 /* TrainingEditorScreen.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A00000000000000000000054 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A00000000000000000000014 /* GymlogTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A00000000000000000000022 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A00000000000000000000040 /* Gymlog */;
+			targetProxy = A00000000000000000000021 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000080 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			};
+			name = Debug;
+		};
+		A00000000000000000000081 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		A00000000000000000000082 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Gymlog/Preview Content\"";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yuanwen.Gymlog;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A00000000000000000000083 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Gymlog/Preview Content\"";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yuanwen.Gymlog;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A00000000000000000000084 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yuanwen.GymlogTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Gymlog.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Gymlog";
+			};
+			name = Debug;
+		};
+		A00000000000000000000085 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.yuanwen.GymlogTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Gymlog.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Gymlog";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000070 /* Build configuration list for PBXNativeTarget "Gymlog" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000082 /* Debug */,
+				A00000000000000000000083 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000071 /* Build configuration list for PBXNativeTarget "GymlogTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000084 /* Debug */,
+				A00000000000000000000085 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000072 /* Build configuration list for PBXProject "Gymlog" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000080 /* Debug */,
+				A00000000000000000000081 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000030 /* Project object */;
+}
