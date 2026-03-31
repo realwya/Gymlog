@@ -3,18 +3,49 @@ import XCTest
 @testable import Gymlog
 
 final class GymlogTests: XCTestCase {
-    func testWorkoutNoteKeepsRawTextAsSingleSourceOfTruth() {
+    func testWorkoutNotePersistsRawTextAndDraftProgressSeparately() {
         let updatedAt = Date(timeIntervalSince1970: 123)
         let note = WorkoutNote(
             rawText: """
             @卧推
-            20 x 8 x 5 3/5
+            20 x 8 x 5
             """,
             updatedAt: updatedAt
         )
 
-        XCTAssertFalse(note.rawText.isEmpty)
+        note.draftProgressState = WorkoutDraftProgressState(
+            entries: [WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 3)]
+        )
+
+        XCTAssertEqual(
+            note.rawText,
+            """
+            @卧推
+            20 x 8 x 5
+            """
+        )
         XCTAssertEqual(note.updatedAt, updatedAt)
+        XCTAssertEqual(note.draftProgressState.entries.count, 1)
+        XCTAssertEqual(note.draftProgressState.entries[0].completedSets, 3)
+    }
+
+    func testWorkoutNoteDraftProgressStateRoundTripsThroughEncodedData() throws {
+        let note = WorkoutNote(rawText: "@卧推\n20 x 8 x 5")
+        let expectedState = WorkoutDraftProgressState(
+            entries: [
+                WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 2),
+                WorkoutDraftProgressEntry(lineIndex: 3, completedSets: 1),
+            ]
+        )
+
+        note.draftProgressState = expectedState
+
+        let restoredNote = WorkoutNote(
+            rawText: note.rawText,
+            draftProgressData: try XCTUnwrap(note.draftProgressData)
+        )
+
+        XCTAssertEqual(restoredNote.draftProgressState, expectedState)
     }
 
     func testExerciseBlockCapturesExerciseRange() {
@@ -27,23 +58,6 @@ final class GymlogTests: XCTestCase {
         XCTAssertEqual(block.exerciseName, "卧推")
         XCTAssertEqual(block.startLineIndex, 0)
         XCTAssertEqual(block.endLineIndex, 3)
-    }
-
-    func testPlanLineRecognizesInProgressState() {
-        let blockID = UUID()
-        let line = PlanLine(
-            lineIndex: 1,
-            exerciseBlockId: blockID,
-            weight: 20,
-            reps: 8,
-            targetSets: 5,
-            completedSets: 3,
-            rawText: "20 x 8 x 5 3/5"
-        )
-
-        XCTAssertEqual(line.completedSets, 3)
-        XCTAssertEqual(line.targetSets, 5)
-        XCTAssertEqual(line.state, .inProgress)
     }
 
     func testPlanLineSupportsFinalizedSemanticStateWithContext() {
@@ -141,7 +155,7 @@ final class GymlogTests: XCTestCase {
     func testWorkoutNoteCanRebuildSnapshotFromRawTextWithoutCachedDerivedState() {
         let rawText = """
         @卧推
-        20 x 8 x 5 3/5
+        20 x 8 x 5
         最后两组感觉很重
         """
         let note = WorkoutNote(rawText: rawText)
@@ -153,5 +167,374 @@ final class GymlogTests: XCTestCase {
         XCTAssertEqual(rebuiltSnapshot.rawText, rawText)
         XCTAssertEqual(firstSnapshot.lines.map(\.rawText), rebuiltSnapshot.lines.map(\.rawText))
         XCTAssertEqual(firstSnapshot.lines.map(\.index), rebuiltSnapshot.lines.map(\.index))
+    }
+
+    func testWorkoutNoteParsesExerciseBlocksPlanLinesAndNoteOwnership() {
+        let note = WorkoutNote(
+            rawText: """
+            今天状态一般
+            @卧推
+            20 x 8 x 5
+            最后两组感觉很重
+
+            @上斜哑铃卧推
+            24 x 10 x 4
+            """
+        )
+
+        let parsedText = note.parsedText()
+
+        XCTAssertEqual(parsedText.exerciseBlocks.map(\.exerciseName), ["卧推", "上斜哑铃卧推"])
+        XCTAssertEqual(parsedText.exerciseBlocks.map(\.startLineIndex), [1, 5])
+        XCTAssertEqual(parsedText.exerciseBlocks.map(\.endLineIndex), [4, 6])
+
+        XCTAssertEqual(parsedText.planLines.count, 2)
+        XCTAssertEqual(parsedText.planLines.map(\.lineIndex), [2, 6])
+        XCTAssertEqual(parsedText.planLines[0].exerciseBlockId, parsedText.exerciseBlocks[0].id)
+        XCTAssertEqual(parsedText.planLines[0].weight, 20)
+        XCTAssertEqual(parsedText.planLines[0].reps, 8)
+        XCTAssertEqual(parsedText.planLines[0].targetSets, 5)
+        XCTAssertEqual(parsedText.planLines[1].exerciseBlockId, parsedText.exerciseBlocks[1].id)
+        XCTAssertEqual(parsedText.planLines[1].targetSets, 4)
+
+        XCTAssertEqual(parsedText.noteLines.map(\.lineIndex), [0, 3, 4])
+        XCTAssertNil(parsedText.noteLines[0].exerciseBlockId)
+        XCTAssertEqual(parsedText.noteLines[1].exerciseBlockId, parsedText.exerciseBlocks[0].id)
+        XCTAssertEqual(parsedText.noteLines[2].exerciseBlockId, parsedText.exerciseBlocks[0].id)
+    }
+
+    func testWorkoutNoteTreatsInvalidOrOrphanPlanSyntaxAsNotes() {
+        let note = WorkoutNote(
+            rawText: """
+            20 x 8 x 5
+            @卧推
+            20 x 8
+            20 x 8 x 5 6/5
+            20 x 8 x 5 3/4
+            0 x 8 x 5
+            20 x 8 x 5 0/5
+            20 x 8 x 5
+            """
+        )
+
+        let parsedText = note.parsedText()
+
+        XCTAssertEqual(parsedText.exerciseBlocks.count, 1)
+        XCTAssertEqual(parsedText.planLines.count, 1)
+        XCTAssertEqual(parsedText.planLines[0].lineIndex, 7)
+        XCTAssertEqual(parsedText.planLines[0].targetSets, 5)
+
+        XCTAssertEqual(parsedText.noteLines.map(\.lineIndex), [0, 2, 3, 4, 5, 6])
+        XCTAssertNil(parsedText.noteLines[0].exerciseBlockId)
+        XCTAssertTrue(parsedText.noteLines.dropFirst().allSatisfy { $0.exerciseBlockId == parsedText.exerciseBlocks[0].id })
+    }
+
+    func testWorkoutNoteParsedTextReusesLineIDsWhenReconcilingSnapshot() {
+        let note = WorkoutNote(
+            rawText: """
+            @卧推
+            20 x 8 x 5
+            最后两组感觉很重
+            """
+        )
+
+        let firstParse = note.parsedText()
+
+        note.rawText = """
+        @卧推
+        20 x 8 x 5
+        22.5 x 6 x 3
+        最后两组感觉很重
+        """
+
+        let reconciledParse = note.parsedText(reconcilingWith: firstParse.snapshot)
+
+        XCTAssertEqual(reconciledParse.exerciseBlocks[0].id, firstParse.exerciseBlocks[0].id)
+        XCTAssertEqual(reconciledParse.planLines[0].id, firstParse.planLines[0].id)
+        XCTAssertEqual(reconciledParse.noteLines[0].id, firstParse.noteLines[0].id)
+        XCTAssertEqual(reconciledParse.planLines[1].lineIndex, 2)
+    }
+
+    func testTrainingEditorTextLayoutBuildsStableLineRangesIncludingTrailingEmptyLine() {
+        let lines = TrainingEditorTextLayout.lines(
+            in: """
+            @卧推
+
+            20 x 8 x 5
+            """
+        )
+
+        XCTAssertEqual(lines.map(\.index), [0, 1, 2])
+        XCTAssertEqual(lines.map(\.text), ["@卧推", "", "20 x 8 x 5"])
+        XCTAssertEqual(lines.map(\.contentRange.location), [0, 4, 5])
+        XCTAssertEqual(lines.map(\.contentRange.length), [3, 0, 10])
+        XCTAssertEqual(lines.map(\.enclosingRange.length), [4, 1, 10])
+    }
+
+    func testTrainingEditorTextLayoutResolvesCurrentLineFromCursorLocation() {
+        let text = """
+        @卧推
+        20 x 8 x 5
+
+        """
+
+        XCTAssertEqual(
+            TrainingEditorTextLayout.line(containingUTF16Location: 0, in: text).index,
+            0
+        )
+        XCTAssertEqual(
+            TrainingEditorTextLayout.line(containingUTF16Location: 4, in: text).index,
+            1
+        )
+        XCTAssertEqual(
+            TrainingEditorTextLayout.line(
+                containingUTF16Location: (text as NSString).length,
+                in: text
+            ).index,
+            2
+        )
+    }
+
+    func testTrainingEditorTextLayoutKeepsSelectionOnSameNoteLineWhenPlanLineLengthChanges() {
+        let oldText = """
+        @卧推
+        20 x 8 x 5
+        最后两组感觉很重
+        """
+        let oldLines = TrainingEditorTextLayout.lines(in: oldText)
+        let oldSelection = NSRange(
+            location: oldLines[2].contentRange.location + 2,
+            length: 0
+        )
+
+        let newText = """
+        @卧推
+        22.5 x 6 x 3
+        最后两组感觉很重
+        """
+
+        let relocatedSelection = TrainingEditorTextLayout.selectionRangePreservingLinePosition(
+            from: oldText,
+            to: newText,
+            selectedRange: oldSelection
+        )
+        let newLines = TrainingEditorTextLayout.lines(in: newText)
+
+        XCTAssertEqual(
+            TrainingEditorTextLayout.line(
+                containingUTF16Location: relocatedSelection.location,
+                in: newText
+            ).index,
+            2
+        )
+        XCTAssertEqual(
+            relocatedSelection.location - newLines[2].contentRange.location,
+            2
+        )
+    }
+
+    func testTrainingEditorTextLayoutKeepsSelectionOffsetWhenCurrentPlanLineChangesLength() {
+        let oldText = """
+        @卧推
+        20 x 8 x 5
+        """
+        let oldLines = TrainingEditorTextLayout.lines(in: oldText)
+        let oldSelection = NSRange(
+            location: oldLines[1].contentRange.location + 4,
+            length: 0
+        )
+
+        let newText = """
+        @卧推
+        22.5 x 8 x 5
+        """
+
+        let relocatedSelection = TrainingEditorTextLayout.selectionRangePreservingLinePosition(
+            from: oldText,
+            to: newText,
+            selectedRange: oldSelection
+        )
+        let newLines = TrainingEditorTextLayout.lines(in: newText)
+
+        XCTAssertEqual(
+            TrainingEditorTextLayout.line(
+                containingUTF16Location: relocatedSelection.location,
+                in: newText
+            ).index,
+            1
+        )
+        XCTAssertEqual(
+            relocatedSelection.location - newLines[1].contentRange.location,
+            4
+        )
+    }
+
+    func testWorkoutTextProgressUpdaterIncrementsDraftProgressWithoutMutatingText() {
+        let parseResult = WorkoutTextParser.parse(
+            rawText: """
+            @卧推
+            20 x 8 x 5
+            """
+        )
+
+        let updatedState = WorkoutTextProgressUpdater.incrementProgress(
+            for: parseResult.planLines[0].id,
+            in: parseResult,
+            draftProgress: WorkoutDraftProgressState()
+        )
+
+        XCTAssertEqual(parseResult.snapshot.rawText, "@卧推\n20 x 8 x 5")
+        XCTAssertEqual(updatedState?.completedSets(forLineIndex: 1), 1)
+    }
+
+    func testWorkoutTextProgressUpdaterStopsAfterTargetSets() {
+        let parseResult = WorkoutTextParser.parse(
+            rawText: """
+            @卧推
+            20 x 8 x 5
+            """
+        )
+        let progressState = WorkoutDraftProgressState(
+            entries: [WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 5)]
+        )
+
+        let updatedState = WorkoutTextProgressUpdater.incrementProgress(
+            for: parseResult.planLines[0].id,
+            in: parseResult,
+            draftProgress: progressState
+        )
+
+        XCTAssertNil(updatedState)
+    }
+
+    func testWorkoutTextProgressUpdaterKeepsProgressWhenEditingNoteLine() {
+        let previousParseResult = WorkoutTextParser.parse(
+            rawText: """
+            @卧推
+            20 x 8 x 5
+            最后两组感觉很重
+            """
+        )
+        let previousProgressState = WorkoutDraftProgressState(
+            entries: [WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 3)]
+        )
+
+        let reconciledState = WorkoutTextProgressUpdater.reconcileDraftProgress(
+            afterEditing: """
+            @卧推
+            20 x 8 x 5
+            最后一组明显变慢
+            """,
+            previousParseResult: previousParseResult,
+            previousDraftProgress: previousProgressState
+        )
+
+        XCTAssertEqual(reconciledState.completedSets(forLineIndex: 1), 3)
+    }
+
+    func testWorkoutTextProgressUpdaterClearsProgressWhenPlanLineDefinitionChanges() {
+        let previousParseResult = WorkoutTextParser.parse(
+            rawText: """
+            @卧推
+            20 x 8 x 5
+            """
+        )
+        let previousProgressState = WorkoutDraftProgressState(
+            entries: [WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 3)]
+        )
+
+        let reconciledState = WorkoutTextProgressUpdater.reconcileDraftProgress(
+            afterEditing: """
+            @卧推
+            20 x 8 x 4
+            """,
+            previousParseResult: previousParseResult,
+            previousDraftProgress: previousProgressState
+        )
+
+        XCTAssertTrue(reconciledState.isEmpty)
+    }
+
+    func testWorkoutTextProgressUpdaterRemovesProgressWhenPlanLineBecomesInvalid() {
+        let previousParseResult = WorkoutTextParser.parse(
+            rawText: """
+            @卧推
+            20 x 8 x 5
+            """
+        )
+        let previousProgressState = WorkoutDraftProgressState(
+            entries: [WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 2)]
+        )
+
+        let reconciledState = WorkoutTextProgressUpdater.reconcileDraftProgress(
+            afterEditing: """
+            @卧推
+            20 x 8 x
+            """,
+            previousParseResult: previousParseResult,
+            previousDraftProgress: previousProgressState
+        )
+
+        XCTAssertTrue(reconciledState.isEmpty)
+    }
+
+    func testWorkoutTextProgressUpdaterMigratesProgressWhenPlanLineMovesToNewIndex() {
+        let previousParseResult = WorkoutTextParser.parse(
+            rawText: """
+            @卧推
+            20 x 8 x 5
+            最后两组感觉很重
+            """
+        )
+        let previousProgressState = WorkoutDraftProgressState(
+            entries: [WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 2)]
+        )
+
+        let reconciledState = WorkoutTextProgressUpdater.reconcileDraftProgress(
+            afterEditing: """
+            @卧推
+            训练前热身完成
+            20 x 8 x 5
+            最后两组感觉很重
+            """,
+            previousParseResult: previousParseResult,
+            previousDraftProgress: previousProgressState
+        )
+
+        XCTAssertNil(reconciledState.completedSets(forLineIndex: 1))
+        XCTAssertEqual(reconciledState.completedSets(forLineIndex: 2), 2)
+    }
+
+    func testWorkoutTextProgressUpdaterFinalizesWorkoutUsingDraftProgress() {
+        let parseResult = WorkoutTextParser.parse(
+            rawText: """
+            @卧推
+            20 x 8 x 5
+            22.5 x 6 x 3
+            25 x 5 x 2
+            最后两组感觉很重
+            """
+        )
+        let draftProgressState = WorkoutDraftProgressState(
+            entries: [
+                WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 4),
+                WorkoutDraftProgressEntry(lineIndex: 2, completedSets: 3),
+            ]
+        )
+
+        let finalizedText = WorkoutTextProgressUpdater.finalizeWorkout(
+            in: parseResult,
+            draftProgress: draftProgressState
+        )
+
+        XCTAssertEqual(
+            finalizedText,
+            """
+            @卧推
+            20 x 8 x 4
+            22.5 x 6 x 3
+            最后两组感觉很重
+            """
+        )
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct GymlogApp: App {
@@ -6,5 +7,9 @@ struct GymlogApp: App {
         WindowGroup {
             TrainingEditorScreen()
         }
+        .modelContainer(for: [
+            WorkoutNote.self,
+            ExerciseLibraryEntry.self,
+        ])
     }
 }
