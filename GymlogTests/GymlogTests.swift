@@ -459,6 +459,20 @@ final class GymlogTests: XCTestCase {
         )
     }
 
+    func testTrainingEditorTextLayoutReturnsHighlightRangesForValidExerciseLinesOnly() {
+        let text = """
+        备注
+          @深蹲  
+        @@卧推
+        @硬拉
+        """
+
+        let highlightRanges = TrainingEditorTextLayout.exerciseLineHighlightRanges(in: text)
+        let highlightedTexts = highlightRanges.map { (text as NSString).substring(with: $0) }
+
+        XCTAssertEqual(highlightedTexts, ["@深蹲", "@硬拉"])
+    }
+
     func testWorkoutTextProgressUpdaterIncrementsDraftProgressWithoutMutatingText() {
         let parseResult = WorkoutTextParser.parse(
             rawText: """

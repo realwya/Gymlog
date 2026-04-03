@@ -7,6 +7,8 @@ struct TrainingTextEditorSelectionRequest: Equatable {
 }
 
 struct TrainingTextEditor: UIViewRepresentable {
+    private static let editorFont = UIFont.monospacedSystemFont(ofSize: 17, weight: .regular)
+
     @Binding var text: String
 
     var trackedLineIndices: Set<Int> = []
@@ -25,7 +27,7 @@ struct TrainingTextEditor: UIViewRepresentable {
         textView.delegate = context.coordinator
         textView.text = text
         textView.backgroundColor = .clear
-        textView.font = .monospacedSystemFont(ofSize: 17, weight: .regular)
+        textView.font = Self.editorFont
         textView.textColor = .label
         textView.tintColor = .systemBlue
         textView.alwaysBounceVertical = true
@@ -40,6 +42,7 @@ struct TrainingTextEditor: UIViewRepresentable {
         textView.textContainer.lineFragmentPadding = 0
         textView.accessibilityIdentifier = "training-text-editor"
 
+        context.coordinator.applyHighlighting(to: textView)
         context.coordinator.publishEditorState(from: textView)
         return textView
     }
@@ -64,6 +67,7 @@ struct TrainingTextEditor: UIViewRepresentable {
                 selectionRange,
                 in: text
             )
+            context.coordinator.applyHighlighting(to: uiView)
         }
 
         if
@@ -75,6 +79,7 @@ struct TrainingTextEditor: UIViewRepresentable {
                 in: uiView.text
             )
             context.coordinator.lastAppliedSelectionRequestID = selectionRequest.id
+            context.coordinator.updateTypingAttributes(for: uiView)
         }
 
         context.coordinator.publishEditorState(from: uiView)
@@ -83,6 +88,15 @@ struct TrainingTextEditor: UIViewRepresentable {
 
 extension TrainingTextEditor {
     final class Coordinator: NSObject, UITextViewDelegate {
+        private static let baseTextAttributes: [NSAttributedString.Key: Any] = [
+            .font: TrainingTextEditor.editorFont,
+            .foregroundColor: UIColor.label,
+        ]
+        private static let exerciseLineTextAttributes: [NSAttributedString.Key: Any] = [
+            .font: TrainingTextEditor.editorFont,
+            .foregroundColor: UIColor.systemBlue,
+        ]
+
         var parent: TrainingTextEditor
         private var lastPublishedLine: TrainingEditorLine?
         fileprivate var lastAppliedSelectionRequestID: UUID?
@@ -92,6 +106,7 @@ extension TrainingTextEditor {
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {
+            applyHighlighting(to: textView)
             publishEditorState(from: textView)
         }
 
@@ -100,10 +115,12 @@ extension TrainingTextEditor {
                 parent.text = textView.text
             }
 
+            applyHighlighting(to: textView)
             publishEditorState(from: textView)
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {
+            updateTypingAttributes(for: textView)
             publishEditorState(from: textView)
         }
 
@@ -144,6 +161,35 @@ extension TrainingTextEditor {
             parent.onTrackedLineRectsChange(trackedLineRects(in: textView))
         }
 
+        func applyHighlighting(to textView: UITextView) {
+            guard textView.markedTextRange == nil else {
+                updateTypingAttributes(for: textView)
+                return
+            }
+
+            let fullRange = NSRange(location: 0, length: (textView.text as NSString).length)
+            let exerciseLineRanges = TrainingEditorTextLayout.exerciseLineHighlightRanges(
+                in: textView.text
+            )
+
+            textView.textStorage.beginEditing()
+            textView.textStorage.setAttributes(Self.baseTextAttributes, range: fullRange)
+            exerciseLineRanges.forEach {
+                textView.textStorage.addAttributes(Self.exerciseLineTextAttributes, range: $0)
+            }
+            textView.textStorage.endEditing()
+
+            updateTypingAttributes(for: textView)
+        }
+
+        func updateTypingAttributes(for textView: UITextView) {
+            let currentLine = TrainingEditorTextLayout.line(
+                containingUTF16Location: textView.selectedRange.location,
+                in: textView.text
+            )
+            textView.typingAttributes = typingAttributes(for: currentLine)
+        }
+
         func clampedSelectedRange(
             _ selectedRange: NSRange,
             in text: String
@@ -153,6 +199,14 @@ extension TrainingTextEditor {
             let selectedLength = min(max(selectedRange.length, 0), length - location)
 
             return NSRange(location: location, length: selectedLength)
+        }
+
+        private func typingAttributes(
+            for line: TrainingEditorLine
+        ) -> [NSAttributedString.Key: Any] {
+            TrainingEditorTextLayout.exerciseLineHighlightRange(for: line) == nil
+                ? Self.baseTextAttributes
+                : Self.exerciseLineTextAttributes
         }
 
         private func trackedLineRects(in textView: UITextView) -> [Int: CGRect] {

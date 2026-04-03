@@ -15,7 +15,6 @@ struct TrainingEditorScreen: View {
         selectedRange: NSRange(location: 0, length: 0)
     )
     @State private var trackedLineRects: [Int: CGRect] = [:]
-    @State private var lastExitedLine: TrainingEditorLine?
     @State private var autocompleteRequest: TrainingEditorExerciseAutocompleteRequest?
     @State private var selectionRequest: TrainingTextEditorSelectionRequest?
 
@@ -35,8 +34,6 @@ struct TrainingEditorScreen: View {
                     .foregroundStyle(.secondary)
 
                 editorCard
-
-                statusPanel
             }
             .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -97,7 +94,6 @@ struct TrainingEditorScreen: View {
                 },
                 onTrackedLineRectsChange: { trackedLineRects = $0 },
                 onLineExit: { line, _ in
-                    lastExitedLine = line
                     session.handleLineExit(from: line)
                 }
             )
@@ -176,101 +172,6 @@ struct TrainingEditorScreen: View {
         }
     }
 
-    private var statusPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("调试状态")
-                .font(.headline)
-
-            statusRow(
-                title: "光标范围",
-                value: "\(selectionContext.selectedRange.location), \(selectionContext.selectedRange.length)"
-            )
-            statusRow(
-                title: "当前行",
-                value: "第 \(selectionContext.currentLine.index + 1) 行"
-            )
-            statusRow(
-                title: "当前行文本范围",
-                value: rangeDescription(selectionContext.currentLine.contentRange)
-            )
-            statusRow(
-                title: "当前行可视区域",
-                value: rectDescription(selectionContext.currentLineRect)
-            )
-            statusRow(
-                title: "最近离开行",
-                value: lastExitedLine.map { "第 \($0.index + 1) 行: \(displayText(for: $0.text))" } ?? "尚未切换行"
-            )
-            statusRow(
-                title: "计划行按钮",
-                value: session.parsedText.planLines.isEmpty ? "无" : session.parsedText.planLines.map { "第 \($0.lineIndex + 1) 行" }.joined(separator: ", ")
-            )
-            statusRow(
-                title: "动作补全",
-                value: autocompleteStatusDescription
-            )
-            statusRow(
-                title: "进行中计划",
-                value: session.draftProgressState.entries
-                    .map { entryDescription(for: $0) }
-                    .joined(separator: ", ")
-                    .nilIfEmpty ?? "无"
-            )
-            if let lastPersistenceErrorMessage = session.lastPersistenceErrorMessage {
-                statusRow(
-                    title: "最近保存错误",
-                    value: lastPersistenceErrorMessage
-                )
-            }
-        }
-        .font(.footnote.monospaced())
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(uiColor: .tertiarySystemBackground))
-        )
-    }
-
-    private func statusRow(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .foregroundStyle(.primary)
-        }
-    }
-
-    private func displayText(for text: String) -> String {
-        text.isEmpty ? "空行" : text
-    }
-
-    private func rangeDescription(_ range: NSRange) -> String {
-        "\(range.location)..<\(NSMaxRange(range))"
-    }
-
-    private func rectDescription(_ rect: CGRect?) -> String {
-        guard let rect else {
-            return "不可用"
-        }
-
-        return String(
-            format: "(x: %.1f, y: %.1f, w: %.1f, h: %.1f)",
-            rect.origin.x,
-            rect.origin.y,
-            rect.size.width,
-            rect.size.height
-        )
-    }
-
-    private func entryDescription(for entry: WorkoutDraftProgressEntry) -> String {
-        guard let planLine = session.parsedText.planLines.first(where: { $0.lineIndex == entry.lineIndex }) else {
-            return "第 \(entry.lineIndex + 1) 行"
-        }
-
-        return "第 \(entry.lineIndex + 1) 行 \(entry.completedSets)/\(planLine.targetSets)"
-    }
-
     private func progressButton(for planLine: PlanLine) -> some View {
         let completedSets = min(
             session.draftProgressState.completedSets(forLineIndex: planLine.lineIndex) ?? 0,
@@ -323,20 +224,6 @@ struct TrainingEditorScreen: View {
             matching: autocompleteRequest.query,
             from: exerciseLibraryEntries
         )
-    }
-
-    private var autocompleteStatusDescription: String {
-        guard let autocompleteRequest else {
-            return "无"
-        }
-
-        let queryDescription = autocompleteRequest.query.isEmpty ? "@" : "@\(autocompleteRequest.query)"
-        let suggestionsDescription = autocompleteSuggestions
-            .map { $0.name }
-            .joined(separator: ", ")
-            .nilIfEmpty ?? "无候选"
-
-        return "\(queryDescription) -> \(suggestionsDescription)"
     }
 
     private func ensureWorkoutNoteExists() {

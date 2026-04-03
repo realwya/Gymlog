@@ -212,6 +212,36 @@ enum TrainingEditorTextLayout {
         )
     }
 
+    static func exerciseLineHighlightRanges(in text: String) -> [NSRange] {
+        lines(in: text).compactMap(exerciseLineHighlightRange(for:))
+    }
+
+    static func exerciseLineHighlightRange(for line: TrainingEditorLine) -> NSRange? {
+        let leadingWhitespaceLength = line.text.prefix {
+            $0.isWhitespace && !$0.isNewline
+        }.utf16.count
+        let trailingWhitespaceLength = String(
+            line.text.reversed().prefix { $0.isWhitespace && !$0.isNewline }.reversed()
+        ).utf16.count
+        let visibleLength = line.contentRange.length - leadingWhitespaceLength - trailingWhitespaceLength
+
+        guard visibleLength > 0 else {
+            return nil
+        }
+
+        let visibleLineTextRange = NSRange(location: leadingWhitespaceLength, length: visibleLength)
+        let visibleLineText = (line.text as NSString).substring(with: visibleLineTextRange)
+
+        guard parsedExerciseName(from: visibleLineText) != nil else {
+            return nil
+        }
+
+        return NSRange(
+            location: line.contentRange.location + leadingWhitespaceLength,
+            length: visibleLength
+        )
+    }
+
     private static func linePosition(
         containingUTF16Location location: Int,
         in text: String
@@ -243,6 +273,23 @@ enum TrainingEditorTextLayout {
         let offset = min(max(position.offsetInEnclosingRange, 0), line.enclosingRange.length)
 
         return line.enclosingRange.location + offset
+    }
+
+    private static func parsedExerciseName(from lineText: String) -> String? {
+        let trimmed = lineText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmed.hasPrefix("@") else {
+            return nil
+        }
+
+        let exerciseName = String(trimmed.dropFirst())
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !exerciseName.isEmpty, !exerciseName.hasPrefix("@") else {
+            return nil
+        }
+
+        return exerciseName
     }
 }
 
