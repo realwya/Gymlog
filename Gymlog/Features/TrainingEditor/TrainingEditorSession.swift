@@ -27,6 +27,11 @@ final class TrainingEditorSession {
         let draftProgressState: WorkoutDraftProgressState
     }
 
+    private struct DraftProgressRecoveryContext {
+        let parseResult: WorkoutTextParseResult
+        let draftProgressState: WorkoutDraftProgressState
+    }
+
     typealias SaveAction = @MainActor (WorkoutNote, PersistedState) throws -> Void
 
     var noteText: String
@@ -40,6 +45,7 @@ final class TrainingEditorSession {
     @ObservationIgnored private var pendingPersistenceTask: Task<Void, Never>?
     @ObservationIgnored private var hasPendingPersistence = false
     @ObservationIgnored private let saveDebounceNanoseconds: UInt64
+    @ObservationIgnored private var progressRecoveryContext: DraftProgressRecoveryContext?
 
     init(
         initialRawText: String,
@@ -79,6 +85,12 @@ final class TrainingEditorSession {
         noteText = workoutNote.rawText
         draftProgressState = workoutNote.draftProgressState
         parsedText = WorkoutTextParser.parse(rawText: workoutNote.rawText)
+        progressRecoveryContext = draftProgressState.isEmpty
+            ? nil
+            : DraftProgressRecoveryContext(
+                parseResult: parsedText,
+                draftProgressState: draftProgressState
+            )
         lastPersistenceErrorMessage = nil
     }
 
@@ -102,6 +114,10 @@ final class TrainingEditorSession {
         }
 
         draftProgressState = updatedDraftProgressState
+        progressRecoveryContext = DraftProgressRecoveryContext(
+            parseResult: parsedText,
+            draftProgressState: updatedDraftProgressState
+        )
         persistImmediately()
     }
 
@@ -119,6 +135,7 @@ final class TrainingEditorSession {
             reconcilingWith: parsedText.snapshot
         )
         noteText = finalizedText
+        progressRecoveryContext = nil
 
         persistImmediately()
     }
@@ -163,19 +180,76 @@ final class TrainingEditorSession {
     }
 
     private func applyCommittedParseState(for rawText: String) {
+        let currentParseResult = parsedText
+        let currentDraftProgressState = draftProgressState
         let reconciledSnapshot = WorkoutTextSnapshot(
             rawText: rawText,
-            reconcilingWith: parsedText.snapshot
+            reconcilingWith: currentParseResult.snapshot
         )
-        let nextParseResult = WorkoutTextParser.parse(snapshot: reconciledSnapshot)
-        let nextDraftProgressState = WorkoutTextProgressUpdater.reconcileDraftProgress(
-            nextParseResult: nextParseResult,
-            previousParseResult: parsedText,
-            previousDraftProgress: draftProgressState
+        let immediateNextParseResult = WorkoutTextParser.parse(snapshot: reconciledSnapshot)
+        let immediateNextDraftProgressState = WorkoutTextProgressUpdater.reconcileDraftProgress(
+            nextParseResult: immediateNextParseResult,
+            previousParseResult: currentParseResult,
+            previousDraftProgress: currentDraftProgressState
         )
 
-        parsedText = nextParseResult
-        draftProgressState = nextDraftProgressState
+        if
+            currentDraftProgressState.isEmpty == false,
+            immediateNextDraftProgressState.entries.count < currentDraftProgressState.entries.count
+        {
+            progressRecoveryContext = DraftProgressRecoveryContext(
+                parseResult: currentParseResult,
+                draftProgressState: currentDraftProgressState
+            )
+        }
+
+        var resolvedParseResult = immediateNextParseResult
+        var resolvedDraftProgressState = immediateNextDraftProgressState
+
+        if
+            let recoveredState = recoveredDraftProgressState(for: rawText),
+            recoveredState.draftProgressState.entries.count > resolvedDraftProgressState.entries.count
+        {
+            resolvedParseResult = recoveredState.parseResult
+            resolvedDraftProgressState = recoveredState.draftProgressState
+        }
+
+        parsedText = resolvedParseResult
+        draftProgressState = resolvedDraftProgressState
+        progressRecoveryContext = resolvedDraftProgressState.isEmpty
+            ? progressRecoveryContext
+            : DraftProgressRecoveryContext(
+                parseResult: resolvedParseResult,
+                draftProgressState: resolvedDraftProgressState
+            )
+    }
+
+    private func recoveredDraftProgressState(
+        for rawText: String
+    ) -> DraftProgressRecoveryContext? {
+        guard let progressRecoveryContext else {
+            return nil
+        }
+
+        let recoveredSnapshot = WorkoutTextSnapshot(
+            rawText: rawText,
+            reconcilingWith: progressRecoveryContext.parseResult.snapshot
+        )
+        let recoveredParseResult = WorkoutTextParser.parse(snapshot: recoveredSnapshot)
+        let recoveredDraftProgressState = WorkoutTextProgressUpdater.reconcileDraftProgress(
+            nextParseResult: recoveredParseResult,
+            previousParseResult: progressRecoveryContext.parseResult,
+            previousDraftProgress: progressRecoveryContext.draftProgressState
+        )
+
+        guard recoveredDraftProgressState.isEmpty == false else {
+            return nil
+        }
+
+        return DraftProgressRecoveryContext(
+            parseResult: recoveredParseResult,
+            draftProgressState: recoveredDraftProgressState
+        )
     }
 
     private func persistIfNeeded() {

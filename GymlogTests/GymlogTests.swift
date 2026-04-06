@@ -733,7 +733,7 @@ final class GymlogTests: XCTestCase {
     }
 
     @MainActor
-    func testTrainingEditorSessionDoesNotRestoreProgressWhenPlanLineBecomesValidAgain() {
+    func testTrainingEditorSessionRestoresProgressWhenPlanLineBecomesValidAgain() {
         let session = TrainingEditorSession(
             initialRawText: """
             @卧推
@@ -761,7 +761,41 @@ final class GymlogTests: XCTestCase {
         )
 
         XCTAssertEqual(session.parsedText.planLines.map(\.rawText), ["20 x 8 x 5"])
+        XCTAssertEqual(session.draftProgressState.completedSets(forLineIndex: 1), 1)
+    }
+
+    @MainActor
+    func testTrainingEditorSessionRestoresProgressAfterTransientInvalidStateWhileDeletingLineAbove() {
+        let session = TrainingEditorSession(
+            initialRawText: """
+            @卧推
+            训练前热身完成
+            20 x 8 x 5
+            """
+        )
+
+        session.incrementProgress(for: session.parsedText.planLines[0])
+
+        session.handleEditedText(
+            """
+            @卧推
+            训练前热身完成20 x 8 x 5
+            """
+        )
+
+        XCTAssertTrue(session.parsedText.planLines.isEmpty)
         XCTAssertTrue(session.draftProgressState.isEmpty)
+
+        session.handleEditedText(
+            """
+            @卧推
+            20 x 8 x 5
+            """
+        )
+
+        XCTAssertEqual(session.parsedText.planLines.map(\.lineIndex), [1])
+        XCTAssertEqual(session.parsedText.planLines.map(\.rawText), ["20 x 8 x 5"])
+        XCTAssertEqual(session.draftProgressState.completedSets(forLineIndex: 1), 1)
     }
 
     func testWorkoutTextProgressUpdaterFinalizesWorkoutUsingDraftProgress() {
