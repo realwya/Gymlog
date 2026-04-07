@@ -50,6 +50,9 @@ struct TrainingHomeScreen: View {
                             } label: {
                                 WorkoutHistoryRow(record: record)
                             }
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                     }
                 }
@@ -110,23 +113,127 @@ private struct WorkoutHistoryRow: View {
     let record: WorkoutHistoryRecord
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(record.finishedAt, format: .dateTime.year().month().day().hour().minute())
-                .font(.subheadline.weight(.semibold))
-            Text(record.previewText)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+        let entries = record.historyCardEntries
+
+        VStack(alignment: .leading, spacing: 16) {
+            Text(record.historyCardDateText)
+                .font(.body.monospaced())
+
+            HStack(alignment: .top, spacing: 24) {
+                historyColumn(title: "动作", values: entries.map(\.exerciseName))
+                historyColumn(title: "最佳组", values: entries.map(\.bestSetText))
+            }
         }
-        .padding(.vertical, 4)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(uiColor: .systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func historyColumn(title: String, values: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.body.monospaced())
+                .foregroundStyle(.secondary)
+
+            ForEach(Array(values.enumerated()), id: \.offset) { _, value in
+                Text(value)
+                    .font(.body.monospaced())
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-private extension WorkoutHistoryRecord {
-    var previewText: String {
-        let lines = rawText
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        return lines.first(where: { $0.isEmpty == false }) ?? "空白训练记录"
+struct WorkoutHistoryCardEntry: Equatable {
+    let exerciseName: String
+    let bestSetText: String
+}
+
+extension WorkoutHistoryRecord {
+    var historyCardDateText: String {
+        Self.historyDateFormatter.string(from: finishedAt)
+    }
+
+    var historyCardEntries: [WorkoutHistoryCardEntry] {
+        let parseResult = WorkoutTextParser.parse(rawText: rawText)
+        let planLinesByExerciseBlock = Dictionary(
+            grouping: parseResult.planLines,
+            by: \.exerciseBlockId
+        )
+
+        return parseResult.exerciseBlocks.compactMap { block in
+            guard
+                let planLines = planLinesByExerciseBlock[block.id],
+                let bestLine = planLines.bestHistoryLine
+            else {
+                return nil
+            }
+
+            return WorkoutHistoryCardEntry(
+                exerciseName: block.exerciseName,
+                bestSetText: bestLine.historySetText
+            )
+        }
+    }
+
+    private static let historyDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+}
+
+private extension Array where Element == PlanLine {
+    var bestHistoryLine: PlanLine? {
+        reduce(nil) { currentBest, candidate in
+            guard let currentBest else {
+                return candidate
+            }
+
+            return candidate.isBetterHistoryBestSet(than: currentBest)
+                ? candidate
+                : currentBest
+        }
+    }
+}
+
+private extension PlanLine {
+    var historySetText: String {
+        "\(historyFormattedWeight) x \(reps) x \(targetSets)"
+    }
+
+    func isBetterHistoryBestSet(than rhs: PlanLine) -> Bool {
+        if weight != rhs.weight {
+            return weight > rhs.weight
+        }
+
+        if reps != rhs.reps {
+            return reps > rhs.reps
+        }
+
+        if targetSets != rhs.targetSets {
+            return targetSets > rhs.targetSets
+        }
+
+        return false
+    }
+
+    private var historyFormattedWeight: String {
+        guard weight.rounded() == weight else {
+            return String(weight)
+        }
+
+        return String(Int(weight))
     }
 }

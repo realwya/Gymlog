@@ -991,6 +991,82 @@ final class GymlogTests: XCTestCase {
         )
     }
 
+    func testWorkoutHistoryCardEntriesBuildsBestSetForEachExercise() {
+        let record = WorkoutHistoryRecord(
+            rawText: """
+            @深蹲
+            20 x 5 x 3
+            40 x 3 x 2
+            @引体向上
+            10 x 5 x 3
+            12.5 x 4 x 2
+            """
+        )
+
+        XCTAssertEqual(
+            record.historyCardEntries,
+            [
+                WorkoutHistoryCardEntry(exerciseName: "深蹲", bestSetText: "40 x 3 x 2"),
+                WorkoutHistoryCardEntry(exerciseName: "引体向上", bestSetText: "12.5 x 4 x 2"),
+            ]
+        )
+    }
+
+    func testWorkoutHistoryCardEntriesBreaksWeightTiesByRepsAndSets() {
+        let record = WorkoutHistoryRecord(
+            rawText: """
+            @卧推
+            40 x 5 x 2
+            40 x 6 x 1
+            40 x 6 x 3
+            """
+        )
+
+        XCTAssertEqual(
+            record.historyCardEntries,
+            [WorkoutHistoryCardEntry(exerciseName: "卧推", bestSetText: "40 x 6 x 3")]
+        )
+    }
+
+    func testWorkoutHistoryCardDateTextUsesYYYYMMDD() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let finishedAt = try XCTUnwrap(
+            calendar.date(
+                from: DateComponents(
+                    year: 2026,
+                    month: 4,
+                    day: 6,
+                    hour: 12,
+                    minute: 0
+                )
+            )
+        )
+        let record = WorkoutHistoryRecord(
+            rawText: """
+            @卧推
+            20 x 5 x 3
+            """,
+            finishedAt: finishedAt
+        )
+
+        XCTAssertEqual(record.historyCardDateText, "2026-04-06")
+    }
+
+    func testWorkoutHistoryCardEntriesSkipsExerciseWithoutValidSet() {
+        let record = WorkoutHistoryRecord(
+            rawText: """
+            @卧推
+            今天状态一般
+            20 x 5
+            @深蹲
+            备注
+            """
+        )
+
+        XCTAssertTrue(record.historyCardEntries.isEmpty)
+    }
+
     @MainActor
     func testTrainingHistoryStoreRecordsNonEmptyFinishedWorkoutAndClearsDraft() throws {
         let container = try ModelContainer(
