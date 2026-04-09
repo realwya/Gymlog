@@ -3,11 +3,6 @@ import SwiftUI
 
 struct TrainingEditorScreen: View {
     private static let autocompleteOverlayMaxHeight: CGFloat = 220
-    private static let defaultInitialRawText = """
-    @卧推
-    20 x 8 x 5
-    最后两组感觉很重
-    """
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
@@ -24,7 +19,7 @@ struct TrainingEditorScreen: View {
     private let onFinishWorkout: ((String) -> Void)?
 
     init(
-        initialRawText: String = Self.defaultInitialRawText,
+        initialRawText: String,
         onFinishWorkout: ((String) -> Void)? = nil
     ) {
         self.initialRawText = initialRawText
@@ -42,10 +37,6 @@ struct TrainingEditorScreen: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
                 header
-
-                Text("合法计划行会在右侧显示独立圆形进度按钮；训练中的完成组数只保存在圆圈草稿状态里，结束训练时才会收敛为最终正文。")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
 
                 editorCard
             }
@@ -77,7 +68,7 @@ struct TrainingEditorScreen: View {
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
             Text("训练记录")
-                .font(.largeTitle.bold())
+                .font(.headline)
 
             Spacer()
 
@@ -85,7 +76,7 @@ struct TrainingEditorScreen: View {
                 finishWorkout()
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
+            .controlSize(.small)
         }
     }
 
@@ -109,16 +100,18 @@ struct TrainingEditorScreen: View {
                 onTrackedLineRectsChange: { trackedLineRects = $0 }
             )
 
+            if session.noteText.isEmpty {
+                Text("先输入 @动作\n再输入 20 x 5 x 5")
+                    .font(.body.monospaced())
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 16)
+                    .allowsHitTesting(false)
+            }
+
             planLineProgressButtons
             autocompleteSuggestionsOverlay
         }
-        .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var planLineProgressButtons: some View {
@@ -320,7 +313,13 @@ struct TrainingEditorScreen: View {
 }
 
 #Preview {
-    TrainingEditorScreen()
+    TrainingEditorScreen(
+        initialRawText: """
+        @卧推
+        20 x 8 x 5
+        最后两组感觉很重
+        """
+    )
         .modelContainer(for: [WorkoutNote.self, ExerciseLibraryEntry.self], inMemory: true)
 }
 

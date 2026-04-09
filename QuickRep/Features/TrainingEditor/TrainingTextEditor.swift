@@ -54,6 +54,11 @@ struct TrainingTextEditor: UIViewRepresentable {
 
         context.coordinator.applyHighlighting(to: textView)
         context.coordinator.publishEditorState(from: textView)
+        if isEditable {
+            DispatchQueue.main.async {
+                textView.becomeFirstResponder()
+            }
+        }
         return textView
     }
 
