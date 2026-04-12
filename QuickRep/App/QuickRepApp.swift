@@ -51,6 +51,15 @@ struct TrainingHomeScreen: View {
                 }
             }
             .navigationTitle("训练")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ExerciseLibraryScreen()
+                    } label: {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                    }
+                }
+            }
             .navigationDestination(isPresented: isPresentingHistoryDetail) {
                 if let selectedHistoryRecord {
                     TrainingHistoryDetailScreen(record: selectedHistoryRecord)
@@ -86,6 +95,9 @@ struct TrainingHomeScreen: View {
                     .ignoresSafeArea(edges: .bottom)
                 }
             }
+        }
+        .onAppear {
+            ExerciseLibraryStore.ensureBuiltinEntries(in: modelContext)
         }
         .sheet(isPresented: $isPresentingEditor) {
             TrainingEditorScreen(
@@ -134,6 +146,91 @@ struct TrainingHomeScreen: View {
                 }
             }
         )
+    }
+}
+
+private struct ExerciseLibraryScreen: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \ExerciseLibraryEntry.name) private var exerciseLibraryEntries: [ExerciseLibraryEntry]
+    @State private var isPresentingAddExerciseAlert = false
+    @State private var newExerciseName = ""
+    @State private var addExerciseErrorMessage: String?
+
+    var body: some View {
+        List(exerciseLibraryEntries) { entry in
+            HStack(spacing: 12) {
+                Text(entry.name)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(entry.isBuiltin ? "内置" : "自定义")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
+        }
+        .navigationTitle("动作库")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isPresentingAddExerciseAlert = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("新增自定义动作")
+            }
+        }
+        .onAppear {
+            ExerciseLibraryStore.ensureBuiltinEntries(in: modelContext)
+        }
+        .alert("新增自定义动作", isPresented: $isPresentingAddExerciseAlert) {
+            TextField("动作名称", text: $newExerciseName)
+
+            Button("取消", role: .cancel) {
+                newExerciseName = ""
+            }
+
+            Button("添加") {
+                addCustomExercise()
+            }
+        } message: {
+            Text("输入一个动作名称，例如“上斜卧推”。")
+        }
+        .alert("无法添加动作", isPresented: isPresentingAddExerciseError) {
+            Button("知道了", role: .cancel) {
+                addExerciseErrorMessage = nil
+            }
+        } message: {
+            Text(addExerciseErrorMessage ?? "")
+        }
+    }
+
+    private var isPresentingAddExerciseError: Binding<Bool> {
+        Binding(
+            get: { addExerciseErrorMessage != nil },
+            set: { isPresented in
+                if isPresented == false {
+                    addExerciseErrorMessage = nil
+                }
+            }
+        )
+    }
+
+    private func addCustomExercise() {
+        do {
+            try ExerciseLibraryStore.addCustomEntry(
+                named: newExerciseName,
+                in: modelContext
+            )
+            newExerciseName = ""
+        } catch let error as ExerciseLibraryStoreError {
+            addExerciseErrorMessage = error.errorDescription
+        } catch {
+            addExerciseErrorMessage = "保存动作失败，请稍后再试。"
+            QuickRepDiagnostics.log(
+                "Failed to add custom exercise library entry: \(error.localizedDescription)"
+            )
+        }
     }
 }
 
@@ -258,6 +355,71 @@ private extension Array where Element == PlanLine {
             return candidate.isBetterHistoryBestSet(than: currentBest)
                 ? candidate
                 : currentBest
+        }
+    }
+}
+
+enum ExerciseLibraryStore {
+    static func ensureBuiltinEntries(in modelContext: ModelContext) {
+        do {
+            let existingEntries = try modelContext.fetch(FetchDescriptor<ExerciseLibraryEntry>())
+            let existingNames = Set(
+                existingEntries.map { ExerciseLibraryCatalog.normalize($0.name) }
+            )
+            let missingBuiltinNames = ExerciseLibraryCatalog.builtinExerciseNames.filter {
+                existingNames.contains(ExerciseLibraryCatalog.normalize($0)) == false
+            }
+
+            guard missingBuiltinNames.isEmpty == false else {
+                return
+            }
+
+            missingBuiltinNames.forEach { name in
+                modelContext.insert(ExerciseLibraryEntry(name: name, isBuiltin: true))
+            }
+            try modelContext.save()
+        } catch {
+            QuickRepDiagnostics.log(
+                "Failed to seed builtin exercise library: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    static func addCustomEntry(
+        named name: String,
+        in modelContext: ModelContext
+    ) throws {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmedName.isEmpty == false else {
+            throw ExerciseLibraryStoreError.emptyName
+        }
+
+        let existingEntries = try modelContext.fetch(FetchDescriptor<ExerciseLibraryEntry>())
+        let normalizedName = ExerciseLibraryCatalog.normalize(trimmedName)
+        let alreadyExists = existingEntries.contains {
+            ExerciseLibraryCatalog.normalize($0.name) == normalizedName
+        }
+
+        guard alreadyExists == false else {
+            throw ExerciseLibraryStoreError.duplicateName
+        }
+
+        modelContext.insert(ExerciseLibraryEntry(name: trimmedName, isBuiltin: false))
+        try modelContext.save()
+    }
+}
+
+enum ExerciseLibraryStoreError: LocalizedError, Equatable {
+    case emptyName
+    case duplicateName
+
+    var errorDescription: String? {
+        switch self {
+        case .emptyName:
+            return "动作名称不能为空。"
+        case .duplicateName:
+            return "这个动作已经存在了。"
         }
     }
 }

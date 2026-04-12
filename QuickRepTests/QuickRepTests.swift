@@ -94,6 +94,88 @@ final class QuickRepTests: XCTestCase {
         XCTAssertTrue(entries.contains { $0.name == "卧推" })
     }
 
+    @MainActor
+    func testExerciseLibraryStoreSeedsBuiltinEntriesIntoEmptyLibrary() throws {
+        let container = try ModelContainer(
+            for: ExerciseLibraryEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let modelContext = container.mainContext
+
+        ExerciseLibraryStore.ensureBuiltinEntries(in: modelContext)
+
+        let entries = try modelContext.fetch(FetchDescriptor<ExerciseLibraryEntry>())
+
+        XCTAssertEqual(entries.count, ExerciseLibraryCatalog.builtinExerciseNames.count)
+        XCTAssertEqual(
+            Set(entries.map(\.name)),
+            Set(ExerciseLibraryCatalog.builtinExerciseNames)
+        )
+        XCTAssertTrue(entries.allSatisfy(\.isBuiltin))
+    }
+
+    @MainActor
+    func testExerciseLibraryStoreDoesNotDuplicateExistingBuiltinEntries() throws {
+        let container = try ModelContainer(
+            for: ExerciseLibraryEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let modelContext = container.mainContext
+
+        modelContext.insert(ExerciseLibraryEntry(name: "卧推", isBuiltin: true))
+        try modelContext.save()
+
+        ExerciseLibraryStore.ensureBuiltinEntries(in: modelContext)
+        ExerciseLibraryStore.ensureBuiltinEntries(in: modelContext)
+
+        let entries = try modelContext.fetch(FetchDescriptor<ExerciseLibraryEntry>())
+        let benchPressEntries = entries.filter { $0.name == "卧推" }
+
+        XCTAssertEqual(entries.count, ExerciseLibraryCatalog.builtinExerciseNames.count)
+        XCTAssertEqual(benchPressEntries.count, 1)
+    }
+
+    @MainActor
+    func testExerciseLibraryStoreAddsCustomEntry() throws {
+        let container = try ModelContainer(
+            for: ExerciseLibraryEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let modelContext = container.mainContext
+
+        try ExerciseLibraryStore.addCustomEntry(
+            named: " 上斜卧推 ",
+            in: modelContext
+        )
+
+        let entries = try modelContext.fetch(FetchDescriptor<ExerciseLibraryEntry>())
+
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries[0].name, "上斜卧推")
+        XCTAssertFalse(entries[0].isBuiltin)
+    }
+
+    @MainActor
+    func testExerciseLibraryStoreRejectsDuplicateCustomEntryNames() throws {
+        let container = try ModelContainer(
+            for: ExerciseLibraryEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let modelContext = container.mainContext
+
+        modelContext.insert(ExerciseLibraryEntry(name: "卧推", isBuiltin: true))
+        try modelContext.save()
+
+        XCTAssertThrowsError(
+            try ExerciseLibraryStore.addCustomEntry(
+                named: " 卧推 ",
+                in: modelContext
+            )
+        ) { error in
+            XCTAssertEqual(error as? ExerciseLibraryStoreError, .duplicateName)
+        }
+    }
+
     func testExerciseLibraryAutocompleteSuggestionsIncludeBuiltinAndCustomEntries() {
         let entries = [
             ExerciseLibraryEntry(name: "卧推", isBuiltin: true),
@@ -108,6 +190,26 @@ final class QuickRepTests: XCTestCase {
 
         XCTAssertEqual(suggestions.map(\.name), ["卧推", "上斜卧推"])
         XCTAssertEqual(suggestions.map(\.isBuiltin), [true, false])
+    }
+
+    func testExerciseLibraryAutocompleteSuggestionsReturnAllMatchesForEmptyQuery() {
+        let entries = [
+            ExerciseLibraryEntry(name: "卧推", isBuiltin: true),
+            ExerciseLibraryEntry(name: "深蹲", isBuiltin: true),
+            ExerciseLibraryEntry(name: "硬拉", isBuiltin: true),
+            ExerciseLibraryEntry(name: "肩推", isBuiltin: true),
+            ExerciseLibraryEntry(name: "引体向上", isBuiltin: true),
+            ExerciseLibraryEntry(name: "杠铃划船", isBuiltin: true),
+            ExerciseLibraryEntry(name: "上斜卧推", isBuiltin: false),
+        ]
+
+        let suggestions = ExerciseLibraryCatalog.autocompleteSuggestions(
+            matching: "",
+            from: entries
+        )
+
+        XCTAssertEqual(suggestions.count, entries.count)
+        XCTAssertTrue(suggestions.contains { $0.name == "上斜卧推" })
     }
 
     func testExerciseLibraryAutocompleteSuggestionsHideExactMatches() {

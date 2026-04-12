@@ -15,6 +15,10 @@ enum ExerciseLibraryCatalog {
         "肩推",
         "引体向上",
         "杠铃划船",
+        "保加利亚分腿蹲",
+        "单腿罗马尼亚硬拉",
+        "壶铃摇摆",
+        "高翻"
     ]
 
     static func builtinEntries() -> [ExerciseLibraryEntry] {
@@ -25,8 +29,7 @@ enum ExerciseLibraryCatalog {
 
     static func autocompleteSuggestions(
         matching query: String,
-        from entries: [ExerciseLibraryEntry],
-        limit: Int = 6
+        from entries: [ExerciseLibraryEntry]
     ) -> [ExerciseAutocompleteSuggestion] {
         let normalizedQuery = normalize(query)
         let deduplicatedSuggestions = Dictionary(
@@ -60,7 +63,7 @@ enum ExerciseLibraryCatalog {
             return []
         }
 
-        return Array(suggestions.prefix(limit))
+        return Array(suggestions)
     }
 
     static func normalize(_ text: String) -> String {

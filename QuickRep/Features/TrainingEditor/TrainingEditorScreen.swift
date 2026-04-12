@@ -46,7 +46,7 @@ struct TrainingEditorScreen: View {
             .navigationBarHidden(true)
         }
         .onAppear {
-            ensureBuiltinExerciseLibraryEntries()
+            ExerciseLibraryStore.ensureBuiltinEntries(in: modelContext)
             ensureWorkoutNoteExists()
             syncFromPersistedWorkoutNoteIfNeeded(force: true)
         }
@@ -243,31 +243,6 @@ struct TrainingEditorScreen: View {
         } catch {
             QuickRepDiagnostics.log(
                 "Failed to save initial workout note: \(error.localizedDescription)"
-            )
-        }
-    }
-
-    private func ensureBuiltinExerciseLibraryEntries() {
-        let existingNames = Set(
-            exerciseLibraryEntries.map { ExerciseLibraryCatalog.normalize($0.name) }
-        )
-        let missingBuiltinNames = ExerciseLibraryCatalog.builtinExerciseNames.filter {
-            existingNames.contains(ExerciseLibraryCatalog.normalize($0)) == false
-        }
-
-        guard missingBuiltinNames.isEmpty == false else {
-            return
-        }
-
-        missingBuiltinNames.forEach { name in
-            modelContext.insert(ExerciseLibraryEntry(name: name, isBuiltin: true))
-        }
-
-        do {
-            try modelContext.save()
-        } catch {
-            QuickRepDiagnostics.log(
-                "Failed to seed builtin exercise library: \(error.localizedDescription)"
             )
         }
     }
