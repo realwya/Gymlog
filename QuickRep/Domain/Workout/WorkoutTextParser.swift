@@ -137,10 +137,10 @@ enum WorkoutTextParser {
         }
 
         guard
-            let weight = rawText.doubleCapture(at: 1, from: plannedMatch),
+            let weightText = rawText.capture(at: 1, from: plannedMatch),
+            let weight = PlanWeight(parsing: weightText),
             let reps = rawText.intCapture(at: 2, from: plannedMatch),
-            let targetSets = rawText.intCapture(at: 3, from: plannedMatch),
-            weight > 0
+            let targetSets = rawText.intCapture(at: 3, from: plannedMatch)
         else {
             return nil
         }
@@ -153,12 +153,13 @@ enum WorkoutTextParser {
     }
 
     private static let plannedPattern = try! NSRegularExpression(
-        pattern: #"^\s*([0-9]+(?:\.[0-9]+)?)\s*x\s*([1-9][0-9]*)\s*x\s*([1-9][0-9]*)\s*$"#
+        pattern: #"^\s*(bodyweight|bw|[0-9]+(?:\.[0-9]+)?)\s*[x×*]\s*([1-9][0-9]*)\s*[x×*]\s*([1-9][0-9]*)\s*$"#,
+        options: [.caseInsensitive]
     )
 }
 
 private struct ParsedPlanLine {
-    let weight: Double
+    let weight: PlanWeight
     let reps: Int
     let targetSets: Int
 }
@@ -174,14 +175,6 @@ private extension String {
         }
 
         return Int(value)
-    }
-
-    func doubleCapture(at index: Int, from match: NSTextCheckingResult) -> Double? {
-        guard let value = capture(at: index, from: match) else {
-            return nil
-        }
-
-        return Double(value)
     }
 
     func capture(at index: Int, from match: NSTextCheckingResult) -> String? {

@@ -426,7 +426,7 @@ enum ExerciseLibraryStoreError: LocalizedError, Equatable {
 
 private extension PlanLine {
     var historySetText: String {
-        "\(historyFormattedWeight) x \(reps) x \(targetSets)"
+        "\(formattedWeight) x \(reps) x \(targetSets)"
     }
 
     func isBetterHistoryBestSet(than rhs: PlanLine) -> Bool {
@@ -443,13 +443,5 @@ private extension PlanLine {
         }
 
         return false
-    }
-
-    private var historyFormattedWeight: String {
-        guard weight.rounded() == weight else {
-            return String(weight)
-        }
-
-        return String(Int(weight))
     }
 }

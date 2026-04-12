@@ -335,7 +335,7 @@ final class QuickRepTests: XCTestCase {
         XCTAssertEqual(parsedText.planLines.count, 2)
         XCTAssertEqual(parsedText.planLines.map(\.lineIndex), [2, 6])
         XCTAssertEqual(parsedText.planLines[0].exerciseBlockId, parsedText.exerciseBlocks[0].id)
-        XCTAssertEqual(parsedText.planLines[0].weight, 20)
+        XCTAssertEqual(parsedText.planLines[0].weight, .numeric(20))
         XCTAssertEqual(parsedText.planLines[0].reps, 8)
         XCTAssertEqual(parsedText.planLines[0].targetSets, 5)
         XCTAssertEqual(parsedText.planLines[1].exerciseBlockId, parsedText.exerciseBlocks[1].id)
@@ -371,6 +371,46 @@ final class QuickRepTests: XCTestCase {
         XCTAssertEqual(parsedText.noteLines.map(\.lineIndex), [0, 2, 3, 4, 5, 6])
         XCTAssertNil(parsedText.noteLines[0].exerciseBlockId)
         XCTAssertTrue(parsedText.noteLines.dropFirst().allSatisfy { $0.exerciseBlockId == parsedText.exerciseBlocks[0].id })
+    }
+
+    func testWorkoutNoteAcceptsAlternativePlanLineSeparators() {
+        let note = WorkoutNote(
+            rawText: """
+            @卧推
+            20 X 8 X 5
+            22.5 × 6 × 3
+            24 * 10 * 4
+            """
+        )
+
+        let parsedText = note.parsedText()
+
+        XCTAssertEqual(parsedText.planLines.count, 3)
+        XCTAssertEqual(parsedText.planLines.map(\.rawText), [
+            "20 X 8 X 5",
+            "22.5 × 6 × 3",
+            "24 * 10 * 4",
+        ])
+        XCTAssertEqual(parsedText.planLines.map(\.weight), [.numeric(20), .numeric(22.5), .numeric(24)])
+        XCTAssertEqual(parsedText.planLines.map(\.reps), [8, 6, 10])
+        XCTAssertEqual(parsedText.planLines.map(\.targetSets), [5, 3, 4])
+    }
+
+    func testWorkoutNoteAcceptsBodyweightPlanLineWeightsCaseInsensitively() {
+        let note = WorkoutNote(
+            rawText: """
+            @引体向上
+            BW x 8 x 3
+            bodyweight X 6 X 2
+            """
+        )
+
+        let parsedText = note.parsedText()
+
+        XCTAssertEqual(parsedText.planLines.count, 2)
+        XCTAssertEqual(parsedText.planLines.map(\.weight), [.bodyweight, .bodyweight])
+        XCTAssertEqual(parsedText.planLines.map(\.reps), [8, 6])
+        XCTAssertEqual(parsedText.planLines.map(\.targetSets), [3, 2])
     }
 
     func testWorkoutNoteParsedTextReusesLineIDsWhenReconcilingSnapshot() {
@@ -959,6 +999,31 @@ final class QuickRepTests: XCTestCase {
         )
     }
 
+    func testWorkoutTextProgressUpdaterFinalizesBodyweightPlanLinesAsBW() {
+        let parseResult = WorkoutTextParser.parse(
+            rawText: """
+            @引体向上
+            bodyweight x 8 x 3
+            """
+        )
+        let draftProgressState = WorkoutDraftProgressState(
+            entries: [WorkoutDraftProgressEntry(lineIndex: 1, completedSets: 2)]
+        )
+
+        let finalizedText = WorkoutTextProgressUpdater.finalizeWorkout(
+            in: parseResult,
+            draftProgress: draftProgressState
+        )
+
+        XCTAssertEqual(
+            finalizedText,
+            """
+            @引体向上
+            BW x 8 x 2
+            """
+        )
+    }
+
     @MainActor
     func testTrainingEditorSessionDebouncesTextPersistenceAndSavesLatestState() async {
         let note = WorkoutNote(
@@ -1152,6 +1217,20 @@ final class QuickRepTests: XCTestCase {
         XCTAssertEqual(
             record.historyCardEntries,
             [WorkoutHistoryCardEntry(exerciseName: "卧推", bestSetText: "40 x 6 x 3")]
+        )
+    }
+
+    func testWorkoutHistoryCardEntriesFormatsBodyweightAsBW() {
+        let record = WorkoutHistoryRecord(
+            rawText: """
+            @引体向上
+            bw x 8 x 3
+            """
+        )
+
+        XCTAssertEqual(
+            record.historyCardEntries,
+            [WorkoutHistoryCardEntry(exerciseName: "引体向上", bestSetText: "BW x 8 x 3")]
         )
     }
 

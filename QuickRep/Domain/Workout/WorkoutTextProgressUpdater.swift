@@ -152,7 +152,7 @@ enum WorkoutTextProgressUpdater {
 private extension WorkoutTextProgressUpdater {
     struct PlanLineFallbackKey: Hashable {
         let exerciseName: String
-        let weight: Double
+        let weight: PlanWeight
         let reps: Int
         let targetSets: Int
     }
@@ -194,15 +194,5 @@ private extension WorkoutTextProgressUpdater {
             reps: planLine.reps,
             targetSets: planLine.targetSets
         )
-    }
-}
-
-private extension PlanLine {
-    var formattedWeight: String {
-        guard weight.rounded() == weight else {
-            return String(weight)
-        }
-
-        return String(Int(weight))
     }
 }
